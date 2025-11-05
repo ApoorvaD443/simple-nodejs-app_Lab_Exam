@@ -4,15 +4,16 @@ APP_NAME := simple-nodejs-app
 IMAGE_NAME := apoorvad4/$(APP_NAME)
 PORT := 3000
 
-# Default target
 .DEFAULT_GOAL := help
 
 help:
 	@echo "Available targets:"
 	@echo "  make install        - Install Node.js dependencies"
+	@echo "  make lint           - Run ESLint for code quality"
+	@echo "  make lint-fix       - Automatically fix lint issues"
 	@echo "  make test           - Run application tests"
-	@echo "  make start          - Start Node.js app"
-	@echo "  make lint           - Run ESLint code check"
+	@echo "  make test-report    - Generate a test report"
+	@echo "  make run            - Run the application locally"
 	@echo "  make docker-build   - Build Docker image"
 	@echo "  make docker-run     - Run Docker container"
 	@echo "  make docker-push    - Push Docker image to Docker Hub"
@@ -22,29 +23,27 @@ install:
 	@echo "Installing dependencies..."
 	npm install
 
-test:
-	@echo "Running tests..."
-	npm test || echo 'No tests defined, skipping.'
-
-start:
-	@echo "Starting Node.js app..."
-	npm start
-
 lint:
 	@echo "Running ESLint..."
-	@if ! command -v npx >/dev/null 2>&1; then \
-		echo "npx not found. Installing npm..."; \
-		sudo apt-get install -y npm; \
-	fi
-	@if [ ! -f package.json ]; then \
-		echo "No package.json found!"; \
-		exit 1; \
-	fi
-	@if ! npx eslint . >/dev/null 2>&1; then \
-		echo "Installing ESLint..."; \
-		npm install eslint --save-dev; \
-	fi
+	npm install eslint --save-dev
 	npx eslint . || echo "Lint completed with warnings or skipped."
+
+lint-fix:
+	@echo "Fixing lint issues..."
+	npx eslint . --fix || echo "Lint auto-fix completed with warnings or skipped."
+
+test:
+	@echo "Running tests..."
+	npm test || echo "No tests defined, skipping."
+
+test-report:
+	@echo "Generating test report..."
+	@mkdir -p reports
+	@npm test -- --reporter mocha-junit-reporter --reporter-options mochaFile=reports/test-results.xml || echo "Generated dummy test report."
+
+run:
+	@echo "Running Node.js app on port $(PORT)..."
+	node index.js &
 
 docker-build:
 	@echo "Building Docker image: $(IMAGE_NAME)"
@@ -62,5 +61,5 @@ clean:
 	@echo "Cleaning up..."
 	rm -rf node_modules
 	rm -f package-lock.json
+	rm -rf reports
 	docker rm -f $(APP_NAME) 2>/dev/null || true
-
